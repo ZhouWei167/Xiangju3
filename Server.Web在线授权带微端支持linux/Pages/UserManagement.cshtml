@@ -1,0 +1,460 @@
+@page
+@model Server.Web.Pages.UserManagementModel
+@{
+    ViewData["Title"] = "用户管理";
+}
+
+<div class="container mt-4">
+    <h2>用户管理</h2>
+    <hr />
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户名</th>
+                    <th>显示名</th>
+                    <th>邮箱</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>最后登录</th>
+                    <th>注册IP</th>
+                    <th>最后登录IP</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="usersTable">
+                <!-- 数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            总用户数: <span id="totalUsers">0</span>
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination" id="pagination">
+                <!-- 分页将通过JavaScript动态加载 -->
+            </ul>
+        </nav>
+    </div>
+
+    <!-- 修改角色模态框 -->
+    <div class="modal fade" id="changeRoleModal" tabindex="-1" aria-labelledby="changeRoleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changeRoleModalLabel">修改用户角色</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeRoleForm">
+                        <input type="hidden" id="roleUserId" name="userId" />
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">选择角色</label>
+                            <select class="form-select" id="userRole" name="newRole">
+                                <option value="0">访客 (Guest)</option>
+                                <option value="1">普通用户 (User)</option>
+                                <option value="2">管理员 (Admin)</option>
+                                <option value="3">超级管理员 (SuperAdmin)</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveRoleBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重置密码模态框 -->
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resetPasswordModalLabel">重置用户密码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="resetPasswordForm">
+                        <input type="hidden" id="passwordUserId" name="userId" />
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">新密码</label>
+                            <input type="password" class="form-control" id="newPassword" name="newPassword" required minlength="6">
+                            <div class="form-text">密码长度至少为6个字符</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">确认密码</label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                            <div class="invalid-feedback">两次输入的密码不一致</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="savePasswordBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认操作模态框 -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">确认操作</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmModalBody">
+                    确定要执行此操作吗？
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmActionBtn">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 当前页码和每页记录数
+        let currentPage = 1;
+        const pageSize = 10;
+        let totalPages = 0;
+        let actionCallback = null;
+        // 当前用户角色
+        const currentUserRole = @((int)Model.CurrentUserRole);
+        const isSuperAdmin = currentUserRole === 3; // 是否为超级管理员
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function () {
+            // 加载用户列表
+            loadUsers();
+            
+            // 保存角色按钮事件
+            document.getElementById('saveRoleBtn').addEventListener('click', function() {
+                const userId = document.getElementById('roleUserId').value;
+                const newRole = document.getElementById('userRole').value;
+                
+                updateUserRole(userId, newRole);
+            });
+            
+            // 保存密码按钮事件
+            document.getElementById('savePasswordBtn').addEventListener('click', function() {
+                const userId = document.getElementById('passwordUserId').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                // 验证密码
+                if (newPassword !== confirmPassword) {
+                    document.getElementById('confirmPassword').classList.add('is-invalid');
+                    return;
+                }
+                
+                document.getElementById('confirmPassword').classList.remove('is-invalid');
+                resetUserPassword(userId, newPassword);
+            });
+            
+            // 确认操作按钮事件
+            document.getElementById('confirmActionBtn').addEventListener('click', function() {
+                if (actionCallback) {
+                    actionCallback();
+                    actionCallback = null;
+                }
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+                modal.hide();
+            });
+
+            // 根据当前用户角色调整角色选择下拉列表
+            const roleSelect = document.getElementById('userRole');
+            if (!isSuperAdmin) {
+                // 如果不是超级管理员，移除管理员和超级管理员选项
+                const adminOption = roleSelect.querySelector('option[value="2"]');
+                const superAdminOption = roleSelect.querySelector('option[value="3"]');
+                if (adminOption) adminOption.remove();
+                if (superAdminOption) superAdminOption.remove();
+            }
+        });
+
+        // 加载用户列表
+        function loadUsers() {
+            fetch(`/api/User/GetAllUsers?page=${currentPage}&pageSize=${pageSize}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include' // 添加凭据选项，确保发送认证Cookie
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '获取用户列表失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderUsers(data.users);
+                renderPagination(data.total, data.page, data.pageSize);
+            })
+            .catch(error => {
+                console.error('获取用户列表失败:', error);
+                alert('获取用户列表失败: ' + error.message);
+            });
+        }
+
+        // 渲染用户列表
+        function renderUsers(users) {
+            const tableBody = document.getElementById('usersTable');
+            tableBody.innerHTML = '';
+
+            if (users.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="11" class="text-center">没有找到用户</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                
+                // 格式化日期
+                const createdAt = new Date(user.created_at).toLocaleString();
+                const lastLoginAt = user.last_login_at ? new Date(user.last_login_at).toLocaleString() : '-';
+                
+                // 获取角色名称
+                const roleName = getRoleName(user.role);
+                
+                // 状态显示
+                const statusBadge = user.is_active ? 
+                    '<span class="badge bg-success">启用</span>' : 
+                    '<span class="badge bg-danger">禁用</span>';
+                
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.display_name || '-'}</td>
+                    <td>${user.email || '-'}</td>
+                    <td>${roleName}</td>
+                    <td>${statusBadge}</td>
+                    <td>${createdAt}</td>
+                    <td>${lastLoginAt}</td>
+                    <td>${user.register_ip || '-'}</td>
+                    <td>${user.last_login_ip || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary change-role-btn" data-user-id="${user.id}" data-role="${user.role}">修改角色</button>
+                        <button class="btn btn-sm ${user.is_active ? 'btn-warning' : 'btn-success'} toggle-status-btn" data-user-id="${user.id}" data-is-active="${user.is_active}">
+                            ${user.is_active ? '禁用' : '启用'}
+                        </button>
+                        <button class="btn btn-sm btn-danger reset-pwd-btn" data-user-id="${user.id}">重置密码</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // 添加修改角色按钮事件
+            document.querySelectorAll('.change-role-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const role = this.getAttribute('data-role');
+                    
+                    document.getElementById('roleUserId').value = userId;
+                    document.getElementById('userRole').value = role;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('changeRoleModal'));
+                    modal.show();
+                });
+            });
+            
+            // 添加切换状态按钮事件
+            document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const isActive = this.getAttribute('data-is-active') === 'true';
+                    const newStatus = !isActive;
+                    
+                    // 显示确认对话框
+                    document.getElementById('confirmModalBody').textContent = `确定要${newStatus ? '启用' : '禁用'}该用户吗？`;
+                    actionCallback = () => updateUserStatus(userId, newStatus);
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+                    modal.show();
+                });
+            });
+            
+            // 添加重置密码按钮事件
+            document.querySelectorAll('.reset-pwd-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    document.getElementById('passwordUserId').value = userId;
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    document.getElementById('confirmPassword').classList.remove('is-invalid');
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+                    modal.show();
+                });
+            });
+        }
+
+        // 渲染分页
+        function renderPagination(total, page, pageSize) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            document.getElementById('totalUsers').textContent = total;
+            
+            totalPages = Math.ceil(total / pageSize);
+            if (totalPages <= 1) return;
+            
+            // 上一页
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${page === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" ${page > 1 ? `onclick="changePage(${page - 1}); return false;"` : ''}>上一页</a>`;
+            pagination.appendChild(prevLi);
+            
+            // 页码
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(totalPages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === page ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+                pagination.appendChild(pageLi);
+            }
+            
+            // 下一页
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${page === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" ${page < totalPages ? `onclick="changePage(${page + 1}); return false;"` : ''}>下一页</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // 切换页码
+        function changePage(page) {
+            currentPage = page;
+            loadUsers();
+        }
+
+        // 获取角色名称
+        function getRoleName(roleId) {
+            switch (parseInt(roleId)) {
+                case 0: return '访客 (Guest)';
+                case 1: return '普通用户 (User)';
+                case 2: return '管理员 (Admin)';
+                case 3: return '超级管理员 (SuperAdmin)';
+                default: return '未知角色';
+            }
+        }
+
+        // 更新用户角色
+        function updateUserRole(userId, newRole) {
+            fetch('/api/User/UpdateUserRole', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include', // 添加凭据选项，确保发送认证Cookie
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    newRole: parseInt(newRole)
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '更新用户角色失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('用户角色已更新');
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('changeRoleModal'));
+                modal.hide();
+                
+                // 重新加载用户列表
+                loadUsers();
+            })
+            .catch(error => {
+                console.error('更新用户角色失败:', error);
+                alert('更新用户角色失败: ' + error.message);
+            });
+        }
+
+        // 更新用户状态
+        function updateUserStatus(userId, isActive) {
+            fetch('/api/User/UpdateUserStatus', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include', // 添加凭据选项，确保发送认证Cookie
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    isActive: isActive
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '更新用户状态失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(`用户状态已更新为${isActive ? '启用' : '禁用'}`);
+                
+                // 重新加载用户列表
+                loadUsers();
+            })
+            .catch(error => {
+                console.error('更新用户状态失败:', error);
+                alert('更新用户状态失败: ' + error.message);
+            });
+        }
+
+        // 重置用户密码
+        function resetUserPassword(userId, newPassword) {
+            fetch('/api/User/ResetUserPassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include', // 添加凭据选项，确保发送认证Cookie
+                body: JSON.stringify({
+                    userId: parseInt(userId),
+                    newPassword: newPassword
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '重置用户密码失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('用户密码已重置');
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+                modal.hide();
+            })
+            .catch(error => {
+                console.error('重置用户密码失败:', error);
+                alert('重置用户密码失败: ' + error.message);
+            });
+        }
+    </script>
+} 

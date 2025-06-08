@@ -1,0 +1,520 @@
+@page
+@model Server.Web.Pages.GroupManagementModel
+@{
+    ViewData["Title"] = "用户组管理";
+}
+
+<div class="container mt-4">
+    <h2>用户组管理</h2>
+    <p class="text-danger">注意：只有超级管理员可以管理用户组</p>
+    <hr />
+
+    <div class="mb-3">
+        <button type="button" class="btn btn-primary" id="createGroupBtn">创建新用户组</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>用户组名称</th>
+                    <th>描述</th>
+                    <th>最低角色要求</th>
+                    <th>权限</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="groupsTable">
+                <!-- 数据将通过JavaScript动态加载 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 用户组编辑模态框 -->
+    <div class="modal fade" id="groupModal" tabindex="-1" aria-labelledby="groupModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="groupModalLabel">用户组信息</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="groupForm">
+                        <input type="hidden" id="groupId" name="id" value="0">
+                        <div class="mb-3">
+                            <label for="groupName" class="form-label">用户组名称</label>
+                            <input type="text" class="form-control" id="groupName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="groupDescription" class="form-label">描述</label>
+                            <textarea class="form-control" id="groupDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="minimumRole" class="form-label">最低角色要求</label>
+                            <select class="form-select" id="minimumRole" name="minimumRole">
+                                <option value="0">访客</option>
+                                <option value="1" selected>普通用户</option>
+                                <option value="2">管理员</option>
+                                <option value="3">超级管理员</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">权限设置</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="canGenerateLicense" name="canGenerateLicense">
+                                <label class="form-check-label" for="canGenerateLicense">
+                                    生成授权文件权限
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="canViewRecords" name="canViewRecords">
+                                <label class="form-check-label" for="canViewRecords">
+                                    查看授权记录权限
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="canManageUsers" name="canManageUsers">
+                                <label class="form-check-label" for="canManageUsers">
+                                    管理用户权限
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveGroupBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认删除模态框 -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除该用户组吗？此操作不可撤销。</p>
+                    <p>用户组名称: <span id="deleteGroupName" class="fw-bold"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户组成员模态框 -->
+    <div class="modal fade" id="groupMembersModal" tabindex="-1" aria-labelledby="groupMembersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="groupMembersModalLabel">用户组成员</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>用户组: <span id="membersGroupName" class="fw-bold"></span></h6>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户名</th>
+                                    <th>显示名</th>
+                                    <th>邮箱</th>
+                                    <th>角色</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="groupMembersTable">
+                                <!-- 数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function () {
+            // 加载用户组列表
+            loadGroups();
+            
+            // 创建新用户组按钮点击事件
+            document.getElementById('createGroupBtn').addEventListener('click', function() {
+                resetGroupForm();
+                document.getElementById('groupModalLabel').textContent = '创建新用户组';
+                const modal = new bootstrap.Modal(document.getElementById('groupModal'));
+                modal.show();
+            });
+            
+            // 保存用户组按钮点击事件
+            document.getElementById('saveGroupBtn').addEventListener('click', function() {
+                saveGroup();
+            });
+            
+            // 确认删除按钮点击事件
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+                const groupId = this.getAttribute('data-group-id');
+                deleteGroup(groupId);
+            });
+        });
+
+        // 加载用户组列表
+        function loadGroups() {
+            fetch('/api/Group/GetAllGroups', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '获取用户组列表失败'); });
+                }
+                return response.json();
+            })
+            .then(groups => {
+                renderGroups(groups);
+            })
+            .catch(error => {
+                console.error('获取用户组列表失败:', error);
+                alert('获取用户组列表失败: ' + error.message);
+            });
+        }
+
+        // 渲染用户组列表
+        function renderGroups(groups) {
+            const tableBody = document.getElementById('groupsTable');
+            tableBody.innerHTML = '';
+
+            if (groups.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="7" class="text-center">没有找到用户组</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+
+            groups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // 格式化日期
+                const createdAt = new Date(group.createdAt).toLocaleString();
+                
+                // 获取角色名称
+                const roleName = getRoleName(group.minimumRole);
+                
+                // 格式化权限
+                const permissions = [];
+                if (group.canGenerateLicense) permissions.push('生成授权文件');
+                if (group.canViewRecords) permissions.push('查看授权记录');
+                if (group.canManageUsers) permissions.push('管理用户');
+                
+                const permissionsText = permissions.length > 0 ? permissions.join(', ') : '无权限';
+                
+                // 系统预设用户组不允许删除
+                const isSystemGroup = group.name === '管理员组' || group.name === '用户组';
+                const deleteBtn = isSystemGroup 
+                    ? '<button class="btn btn-sm btn-danger" disabled title="系统预设用户组不可删除">删除</button>'
+                    : `<button class="btn btn-sm btn-danger delete-group-btn" data-group-id="${group.id}" data-group-name="${group.name}">删除</button>`;
+                
+                row.innerHTML = `
+                    <td>${group.id}</td>
+                    <td>${group.name}</td>
+                    <td>${group.description || '-'}</td>
+                    <td>${roleName}</td>
+                    <td>${permissionsText}</td>
+                    <td>${createdAt}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary edit-group-btn" data-group-id="${group.id}">编辑</button>
+                        <button class="btn btn-sm btn-info view-members-btn" data-group-id="${group.id}" data-group-name="${group.name}">查看成员</button>
+                        ${deleteBtn}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // 添加编辑按钮事件
+            document.querySelectorAll('.edit-group-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const groupId = this.getAttribute('data-group-id');
+                    loadGroupDetails(groupId);
+                });
+            });
+            
+            // 添加删除按钮事件
+            document.querySelectorAll('.delete-group-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const groupId = this.getAttribute('data-group-id');
+                    const groupName = this.getAttribute('data-group-name');
+                    
+                    document.getElementById('deleteGroupName').textContent = groupName;
+                    document.getElementById('confirmDeleteBtn').setAttribute('data-group-id', groupId);
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                    modal.show();
+                });
+            });
+            
+            // 添加查看成员按钮事件
+            document.querySelectorAll('.view-members-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const groupId = this.getAttribute('data-group-id');
+                    const groupName = this.getAttribute('data-group-name');
+                    
+                    document.getElementById('membersGroupName').textContent = groupName;
+                    loadGroupMembers(groupId);
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('groupMembersModal'));
+                    modal.show();
+                });
+            });
+        }
+
+        // 加载用户组详情
+        function loadGroupDetails(groupId) {
+            fetch(`/api/Group/GetGroupById?id=${groupId}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '获取用户组详情失败'); });
+                }
+                return response.json();
+            })
+            .then(group => {
+                // 填充表单
+                document.getElementById('groupId').value = group.id;
+                document.getElementById('groupName').value = group.name;
+                document.getElementById('groupDescription').value = group.description || '';
+                document.getElementById('minimumRole').value = group.minimumRole;
+                document.getElementById('canGenerateLicense').checked = group.canGenerateLicense;
+                document.getElementById('canViewRecords').checked = group.canViewRecords;
+                document.getElementById('canManageUsers').checked = group.canManageUsers;
+                
+                // 更新模态框标题
+                document.getElementById('groupModalLabel').textContent = '编辑用户组';
+                
+                // 显示模态框
+                const modal = new bootstrap.Modal(document.getElementById('groupModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('获取用户组详情失败:', error);
+                alert('获取用户组详情失败: ' + error.message);
+            });
+        }
+
+        // 保存用户组
+        function saveGroup() {
+            // 获取表单数据
+            const formData = {
+                id: parseInt(document.getElementById('groupId').value) || 0,
+                name: document.getElementById('groupName').value,
+                description: document.getElementById('groupDescription').value,
+                minimumRole: parseInt(document.getElementById('minimumRole').value),
+                canGenerateLicense: document.getElementById('canGenerateLicense').checked,
+                canViewRecords: document.getElementById('canViewRecords').checked,
+                canManageUsers: document.getElementById('canManageUsers').checked
+            };
+            
+            // 验证表单
+            if (!formData.name) {
+                alert('用户组名称不能为空');
+                return;
+            }
+            
+            fetch('/api/Group/SaveGroup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '保存用户组失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('groupModal'));
+                modal.hide();
+                
+                // 重新加载用户组列表
+                loadGroups();
+            })
+            .catch(error => {
+                console.error('保存用户组失败:', error);
+                alert('保存用户组失败: ' + error.message);
+            });
+        }
+
+        // 删除用户组
+        function deleteGroup(groupId) {
+            fetch(`/api/Group/DeleteGroup?id=${groupId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '删除用户组失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                
+                // 关闭模态框
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+                modal.hide();
+                
+                // 重新加载用户组列表
+                loadGroups();
+            })
+            .catch(error => {
+                console.error('删除用户组失败:', error);
+                alert('删除用户组失败: ' + error.message);
+            });
+        }
+
+        // 加载用户组成员
+        function loadGroupMembers(groupId) {
+            fetch(`/api/Group/GetGroupMembers?groupId=${groupId}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '获取用户组成员失败'); });
+                }
+                return response.json();
+            })
+            .then(members => {
+                const tableBody = document.getElementById('groupMembersTable');
+                tableBody.innerHTML = '';
+                
+                if (members.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="6" class="text-center">该用户组没有成员</td>';
+                    tableBody.appendChild(row);
+                    return;
+                }
+                
+                members.forEach(member => {
+                    const row = document.createElement('tr');
+                    
+                    // 获取角色名称
+                    const roleName = getRoleName(member.role);
+                    
+                    row.innerHTML = `
+                        <td>${member.id}</td>
+                        <td>${member.username}</td>
+                        <td>${member.display_name || '-'}</td>
+                        <td>${member.email || '-'}</td>
+                        <td>${roleName}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger remove-member-btn" data-user-id="${member.id}" data-group-id="${groupId}">移除</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // 添加移除成员按钮事件
+                document.querySelectorAll('.remove-member-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-user-id');
+                        const groupId = this.getAttribute('data-group-id');
+                        
+                        if (confirm('确定要将该用户从用户组中移除吗？')) {
+                            removeUserFromGroup(userId, groupId);
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('获取用户组成员失败:', error);
+                alert('获取用户组成员失败: ' + error.message);
+            });
+        }
+
+        // 从用户组中移除用户
+        function removeUserFromGroup(userId, groupId) {
+            fetch(`/api/Group/RemoveUserFromGroup?userId=${userId}&groupId=${groupId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || '移除用户失败'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert(data.message);
+                
+                // 重新加载用户组成员
+                loadGroupMembers(groupId);
+            })
+            .catch(error => {
+                console.error('移除用户失败:', error);
+                alert('移除用户失败: ' + error.message);
+            });
+        }
+
+        // 重置用户组表单
+        function resetGroupForm() {
+            document.getElementById('groupId').value = '0';
+            document.getElementById('groupName').value = '';
+            document.getElementById('groupDescription').value = '';
+            document.getElementById('minimumRole').value = '1'; // 默认为普通用户
+            document.getElementById('canGenerateLicense').checked = false;
+            document.getElementById('canViewRecords').checked = false;
+            document.getElementById('canManageUsers').checked = false;
+        }
+
+        // 获取角色名称
+        function getRoleName(roleId) {
+            switch (parseInt(roleId)) {
+                case 0: return '访客';
+                case 1: return '普通用户';
+                case 2: return '管理员';
+                case 3: return '超级管理员';
+                default: return '未知角色';
+            }
+        }
+    </script>
+} 

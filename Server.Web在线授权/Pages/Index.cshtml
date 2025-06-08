@@ -1,0 +1,87 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "首页";
+}
+
+<div class="container mt-4">
+    <div class="jumbotron">
+        <h1 class="display-4">欢迎使用 伏羲授权</h1>
+        <p class="lead">这是一个授权文件生成和管理系统，提供授权文件生成、验证和管理功能。</p>
+        <hr class="my-4">
+        
+        @if (User?.Identity?.IsAuthenticated == true)
+        {
+            @inject Server.Web.Models.Auth.AuthService AuthService
+            <div class="alert alert-success">
+                <h4>您已登录</h4>
+                <p>当前用户: @User.Identity.Name</p>
+                <p>您的权限:</p>
+                <ul>
+                    @if (AuthService.CanCurrentUserGenerateLicense())
+                    {
+                        <li>生成授权文件</li>
+                    }
+                    @if (AuthService.CanCurrentUserViewRecords())
+                    {
+                        <li>查看授权记录</li>
+                    }
+                    @if (AuthService.CanCurrentUserManageUsers())
+                    {
+                        <li>管理用户</li>
+                    }
+                </ul>
+            </div>
+            
+            <div class="mt-4">
+                <h4>可用功能</h4>
+                <div class="row">
+                    @if (AuthService.CanCurrentUserGenerateLicense())
+                    {
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">授权文件生成</h5>
+                                    <p class="card-text">生成新的授权文件，设置授权参数。</p>
+                                    <a href="/License" class="btn btn-primary">前往生成</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    
+                    @if (AuthService.CanCurrentUserViewRecords())
+                    {
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">授权记录管理</h5>
+                                    <p class="card-text">查看和管理所有授权记录。</p>
+                                    <a href="/LicenseRecords" class="btn btn-primary">查看记录</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <h4>请先登录</h4>
+                <p>您需要登录才能使用授权文件生成和管理功能。</p>
+                <a href="/Account/Login" class="btn btn-primary">登录</a>
+            </div>
+            
+            <div class="mt-4">
+                <h4>系统说明</h4>
+                <p>本系统提供以下功能：</p>
+                <ul>
+                    <li>生成授权文件：根据硬件ID和授权参数生成授权文件</li>
+                    <li>验证授权文件：验证授权文件的有效性</li>
+                    <li>授权记录管理：查看和管理所有授权记录</li>
+                </ul>
+                <p>登录后，根据您的权限可以使用相应的功能。</p>
+            </div>
+        }
+    </div>
+</div>

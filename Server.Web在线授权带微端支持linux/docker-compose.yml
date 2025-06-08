@@ -1,0 +1,16 @@
+version: '2.2'
+services:
+  server-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: server-web
+    ports:
+      - "5000:5000"
+    restart: always
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./publish/wwwroot:/app/wwwroot
+      - /opt/MobileClient:/app/MobileClient
+      - ./publish/appsettings.json:/app/appsettings.json

@@ -1,0 +1,601 @@
+@page
+@model Server.Web.Pages.LicenseModel
+@{
+    ViewData["Title"] = "授权文件生成";
+}
+
+<div class="container mt-4">
+    <h2>伏羲授权文件生成工具</h2>
+    <hr />
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    生成授权文件
+                </div>
+                <div class="card-body">
+                    @if (!Model.IsAdmin)
+                    {
+                        <div class="alert alert-info mb-3" id="licenseCountInfo">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>正在加载授权生成次数信息...</span>
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <form id="licenseForm">
+                        <div class="form-group mb-3">
+                            <label for="hardwareId">硬件ID</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="hardwareId" name="hardwareId" required>
+                                <button type="button" class="btn btn-secondary" id="getLocalHardwareId">获取本机ID</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="expirationDate">过期时间</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="date" class="form-control" id="expirationDate" name="expirationDate" required>
+                            }
+                            else
+                            {
+                                <input type="date" class="form-control" id="expirationDate" name="expirationDate" required readonly>
+                                <small class="form-text text-muted">普通用户固定为30天后过期</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="numberOfUses">最大使用次数</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="number" class="form-control" id="numberOfUses" name="numberOfUses" min="1" value="100" required>
+                            }
+                            else
+                            {
+                                <input type="number" class="form-control" id="numberOfUses" name="numberOfUses" min="1" value="100" required readonly>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="numberOfInstances">最大实例数</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="number" class="form-control" id="numberOfInstances" name="numberOfInstances" min="1" value="1" required>
+                            }
+                            else
+                            {
+                                <input type="number" class="form-control" id="numberOfInstances" name="numberOfInstances" min="1" value="1" required readonly>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableEvaluationLock" name="enableEvaluationLock" checked>
+                                <label class="form-check-label" for="enableEvaluationLock">启用试用锁定</label>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableEvaluationLock" name="enableEvaluationLock" checked disabled>
+                                <label class="form-check-label" for="enableEvaluationLock">启用试用锁定</label>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableExpirationDateLock" name="enableExpirationDateLock" checked>
+                                <label class="form-check-label" for="enableExpirationDateLock">启用过期时间锁定</label>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableExpirationDateLock" name="enableExpirationDateLock" checked disabled>
+                                <label class="form-check-label" for="enableExpirationDateLock">启用过期时间锁定</label>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableNumberOfUsesLock" name="enableNumberOfUsesLock" checked>
+                                <label class="form-check-label" for="enableNumberOfUsesLock">启用使用次数锁定</label>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableNumberOfUsesLock" name="enableNumberOfUsesLock" checked disabled>
+                                <label class="form-check-label" for="enableNumberOfUsesLock">启用使用次数锁定</label>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableNumberOfInstancesLock" name="enableNumberOfInstancesLock" checked>
+                                <label class="form-check-label" for="enableNumberOfInstancesLock">启用实例数锁定</label>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableNumberOfInstancesLock" name="enableNumberOfInstancesLock" checked disabled>
+                                <label class="form-check-label" for="enableNumberOfInstancesLock">启用实例数锁定</label>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableHardwareLock" name="enableHardwareLock" checked>
+                                <label class="form-check-label" for="enableHardwareLock">启用硬件锁定</label>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="form-check-input" id="enableHardwareLock" name="enableHardwareLock" checked disabled>
+                                <label class="form-check-label" for="enableHardwareLock">启用硬件锁定</label>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        @if (Model.IsAdmin)
+                        {
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="forceGenerate" name="forceGenerate">
+                                <label class="form-check-label" for="forceGenerate">强制生成（覆盖已有授权，仅管理员可用）</label>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" id="forceGenerate" name="forceGenerate" value="false">
+                        }
+                        
+                        <div class="form-group mb-3">
+                            <label for="evaluationTime">试用期(天数)</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="number" class="form-control" id="evaluationTime" name="evaluationTime" min="0" value="30">
+                            }
+                            else
+                            {
+                                <input type="number" class="form-control" id="evaluationTime" name="evaluationTime" min="0" value="30" readonly>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="evaluationType">试用类型</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <select class="form-control" id="evaluationType" name="evaluationType">
+                                    <option value="0">按天</option>
+                                    <option value="1">按次数</option>
+                                    <option value="2">按时长</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select class="form-control" id="evaluationType" name="evaluationType" disabled>
+                                    <option value="0">按天</option>
+                                </select>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="version">版本号</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="text" class="form-control" id="version" name="version" value="1.0.0">
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" id="version" name="version" value="1.0.0" readonly>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="customerName">客户名称</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="text" class="form-control" id="customerName" name="customerName" list="usernameList">
+                                <datalist id="usernameList">
+                                    <!-- 将通过JavaScript加载所有用户名 -->
+                                </datalist>
+                                <small class="form-text text-muted">输入客户名称。如果输入系统用户名，该授权将同时显示在该用户的"我的授权记录"中</small>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" id="customerName" name="customerName" readonly value="@User.Identity.Name">
+                                <small class="form-text text-muted">普通用户固定为当前用户名</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="productName">产品名称</label>
+                            @if (Model.IsAdmin)
+                            {
+                                <input type="text" class="form-control" id="productName" name="productName" value="伏羲授权">
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" id="productName" name="productName" value="伏羲授权" readonly>
+                                <small class="form-text text-muted">普通用户无法修改此项</small>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label>自定义数据</label>
+                            <div id="customDataContainer">
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" placeholder="键" name="customDataKey[]">
+                                    <input type="text" class="form-control" placeholder="值" name="customDataValue[]">
+                                    <button type="button" class="btn btn-danger removeCustomData">删除</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="addCustomData">添加自定义数据</button>
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-primary">生成授权文件</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    验证授权文件
+                </div>
+                <div class="card-body">
+                    <form id="validateForm">
+                        <div class="form-group mb-3">
+                            <label for="licenseFile">选择授权文件</label>
+                            <input type="file" class="form-control" id="licenseFile" name="licenseFile" accept=".license">
+                        </div>
+                        <button type="submit" class="btn btn-info">验证授权文件</button>
+                    </form>
+                    
+                    <div class="mt-4" id="validationResult" style="display: none;">
+                        <h5>授权文件内容</h5>
+                        <pre id="licenseInfo" class="border p-2" style="max-height: 300px; overflow-y: auto;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM加载完成，初始化授权文件生成页面');
+            
+            // 设置默认过期时间
+            const setDefaultExpirationDate = function() {
+                const isAdmin = @(Model.IsAdmin ? "true" : "false");
+                let expirationDate;
+                
+                if (isAdmin) {
+                    // 管理员设置为一年后
+                    expirationDate = new Date();
+                    expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+                } else {
+                    // 普通用户设置为30天后
+                    expirationDate = new Date();
+                    expirationDate.setDate(expirationDate.getDate() + 30);
+                }
+                
+                document.getElementById('expirationDate').value = expirationDate.toISOString().split('T')[0];
+            };
+            
+            // 调用设置默认过期时间
+            setDefaultExpirationDate();
+            
+            // 如果是管理员，加载用户名列表
+            const isAdmin = @(Model.IsAdmin ? "true" : "false");
+            if (isAdmin) {
+                fetch('/api/User/GetAllUsernames', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message || '获取用户名列表失败'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const datalist = document.getElementById('usernameList');
+                    data.forEach(username => {
+                        const option = document.createElement('option');
+                        option.value = username;
+                        datalist.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('获取用户名列表失败:', error);
+                });
+            }
+            
+            // 获取授权生成次数信息
+            const licenseCountInfo = document.getElementById('licenseCountInfo');
+            if (licenseCountInfo) {
+                fetch('/api/User/GetMyLicenseGenerationInfo', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message || '获取授权次数信息失败'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('获取到授权次数信息:', data);
+                    let content = '';
+                    
+                    if (data.canGenerateMore) {
+                        if (data.isAdmin) {
+                            content = `<div class="text-success">您是管理员，不受授权文件生成次数限制。</div>`;
+                        } else {
+                            content = `<div class="text-success">您已生成 <strong>${data.currentCount}</strong> 次授权，还可以生成 <strong>${data.remainingCount}</strong> 次。</div>`;
+                        }
+                    } else {
+                        content = `<div class="text-danger">您已达到最大授权文件生成次数限制 (${data.maxCount})，无法继续生成。</div>`;
+                    }
+                    
+                    licenseCountInfo.innerHTML = content;
+                })
+                .catch(error => {
+                    console.error('获取授权次数信息错误:', error);
+                    licenseCountInfo.innerHTML = `<div class="text-danger">获取授权次数信息失败: ${error.message}</div>`;
+                });
+            }
+            
+            // 获取本机硬件ID
+            document.getElementById('getLocalHardwareId').addEventListener('click', function() {
+                console.log('获取本机硬件ID按钮被点击');
+                
+                fetch('/api/License/GetLocalHardwareID', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    console.log('收到API响应:', response);
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message || '获取硬件ID失败'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('获取到硬件ID数据:', data);
+                    // 处理新的返回格式
+                    if (typeof data === 'object' && data.hardwareId) {
+                        document.getElementById('hardwareId').value = data.hardwareId;
+                        
+                        // 如果需要，可以显示调试信息
+                        if (data.debugInfo) {
+                            console.log('硬件ID调试信息:', data.debugInfo);
+                            
+                            // 可以创建一个模态框显示调试信息
+                            const debugDiv = document.createElement('div');
+                            debugDiv.style.display = 'none';
+                            debugDiv.style.position = 'fixed';
+                            debugDiv.style.zIndex = '1000';
+                            debugDiv.style.left = '10%';
+                            debugDiv.style.top = '10%';
+                            debugDiv.style.width = '80%';
+                            debugDiv.style.maxHeight = '80%';
+                            debugDiv.style.overflow = 'auto';
+                            debugDiv.style.backgroundColor = 'white';
+                            debugDiv.style.padding = '20px';
+                            debugDiv.style.border = '1px solid #ccc';
+                            debugDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                            
+                            const closeBtn = document.createElement('button');
+                            closeBtn.textContent = '关闭';
+                            closeBtn.className = 'btn btn-secondary';
+                            closeBtn.style.float = 'right';
+                            closeBtn.onclick = function() { 
+                                document.body.removeChild(debugDiv);
+                            };
+                            
+                            const title = document.createElement('h4');
+                            title.textContent = '硬件ID调试信息';
+                            
+                            const pre = document.createElement('pre');
+                            pre.style.maxHeight = '400px';
+                            pre.style.overflow = 'auto';
+                            pre.style.marginTop = '10px';
+                            pre.textContent = data.debugInfo;
+                            
+                            debugDiv.appendChild(closeBtn);
+                            debugDiv.appendChild(title);
+                            debugDiv.appendChild(pre);
+                            
+                            const showDebugBtn = document.createElement('button');
+                            showDebugBtn.textContent = '查看硬件详情';
+                            showDebugBtn.className = 'btn btn-info btn-sm ms-2';
+                            showDebugBtn.onclick = function() {
+                                document.body.appendChild(debugDiv);
+                                debugDiv.style.display = 'block';
+                            };
+                            
+                            // 在硬件ID输入框旁添加按钮
+                            const container = document.getElementById('getLocalHardwareId').parentNode;
+                            container.appendChild(showDebugBtn);
+                        }
+                    } else {
+                        // 兼容旧格式
+                        document.getElementById('hardwareId').value = data;
+                    }
+                })
+                .catch(error => {
+                    console.error('获取硬件ID错误:', error);
+                    alert('获取硬件ID失败: ' + error.message);
+                });
+            });
+            
+            // 添加自定义数据
+            document.getElementById('addCustomData').addEventListener('click', function() {
+                const newRow = document.createElement('div');
+                newRow.className = 'input-group mb-2';
+                newRow.innerHTML = `
+                    <input type="text" class="form-control" placeholder="键" name="customDataKey[]">
+                    <input type="text" class="form-control" placeholder="值" name="customDataValue[]">
+                    <button type="button" class="btn btn-danger removeCustomData">删除</button>
+                `;
+                document.getElementById('customDataContainer').appendChild(newRow);
+            });
+            
+            // 删除自定义数据行
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('removeCustomData')) {
+                    e.target.closest('.input-group').remove();
+                }
+            });
+            
+            // 提交表单生成授权文件
+            document.getElementById('licenseForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 收集表单数据
+                const licenseInfo = {
+                    hardwareID: document.getElementById('hardwareId').value,
+                    expirationDate: document.getElementById('expirationDate').value,
+                    numberOfUses: parseInt(document.getElementById('numberOfUses').value),
+                    numberOfInstances: parseInt(document.getElementById('numberOfInstances').value),
+                    enableEvaluationLock: document.getElementById('enableEvaluationLock').checked,
+                    enableExpirationDateLock: document.getElementById('enableExpirationDateLock').checked,
+                    enableNumberOfUsesLock: document.getElementById('enableNumberOfUsesLock').checked,
+                    enableNumberOfInstancesLock: document.getElementById('enableNumberOfInstancesLock').checked,
+                    enableHardwareLock: document.getElementById('enableHardwareLock').checked,
+                    evaluationTime: parseInt(document.getElementById('evaluationTime').value),
+                    evaluationType: parseInt(document.getElementById('evaluationType').value),
+                    version: document.getElementById('version').value,
+                    customerName: document.getElementById('customerName').value,
+                    productName: document.getElementById('productName').value,
+                    issueDate: new Date().toISOString(),
+                    customData: {}
+                };
+                
+                // 收集自定义数据
+                const keys = document.getElementsByName('customDataKey[]');
+                const values = document.getElementsByName('customDataValue[]');
+                for (let i = 0; i < keys.length; i++) {
+                    const key = keys[i].value;
+                    const value = values[i].value;
+                    if (key) {
+                        licenseInfo.customData[key] = value;
+                    }
+                }
+                
+                // 发送请求生成授权文件
+                fetch('/api/License/GenerateLicense' + (document.getElementById('forceGenerate').checked ? '?forceGenerate=true' : ''), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User': 'BlackDragon',
+                        'Code': '1.0.0'
+                    },
+                    body: JSON.stringify(licenseInfo)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { 
+                            // 如果是已存在授权记录的错误，且用户没有选择强制生成，提供强制生成选项
+                            if (err.existingRecord && !document.getElementById('forceGenerate').checked) {
+                                if (@(Model.IsAdmin ? "true" : "false") && confirm(err.message + "\n\n是否要强制为该硬件ID重新生成授权文件？")) {
+                                    // 如果用户确认，则使用forceGenerate参数重新发送请求
+                                    return fetch('/api/License/GenerateLicense?forceGenerate=true', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'User': 'BlackDragon',
+                                            'Code': '1.0.0'
+                                        },
+                                        body: JSON.stringify(licenseInfo)
+                                    }).then(response => {
+                                        if (!response.ok) {
+                                            return response.json().then(err => { throw new Error(err.message); });
+                                        }
+                                        return response.blob();
+                                    });
+                                }
+                            }
+                            throw new Error(err.message); 
+                        });
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // 创建下载链接
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${licenseInfo.hardwareID}.license`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    alert('授权文件生成成功！');
+                })
+                .catch(error => {
+                    alert('生成授权文件失败: ' + error.message);
+                });
+            });
+            
+            // 验证授权文件
+            document.getElementById('validateForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData();
+                const fileInput = document.getElementById('licenseFile');
+                
+                if (fileInput.files.length === 0) {
+                    alert('请选择授权文件');
+                    return;
+                }
+                
+                formData.append('licenseFile', fileInput.files[0]);
+                
+                fetch('/api/License/ValidateLicense', {
+                    method: 'POST',
+                    headers: {
+                        'User': 'BlackDragon',
+                        'Code': '1.0.0'
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('licenseInfo').textContent = JSON.stringify(data, null, 2);
+                    document.getElementById('validationResult').style.display = 'block';
+                })
+                .catch(error => {
+                    alert('验证授权文件失败: ' + error.message);
+                });
+            });
+        });
+    </script>
+} 
