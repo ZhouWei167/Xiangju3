@@ -1,0 +1,93 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Library</RootNamespace>
+    <AssemblyName>Library</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="ConfigReader.cs" />
+    <Compile Include="Consts.cs" />
+    <Compile Include="Enum.cs" />
+    <Compile Include="EnumHelp.cs" />
+    <Compile Include="FrameSet.cs" />
+    <Compile Include="Functions.cs" />
+    <Compile Include="Globals.cs" />
+    <Compile Include="Libraries.cs" />
+    <Compile Include="Stat.cs" />
+    <Compile Include="Time.cs" />
+    <Compile Include="MirDB\ADBCollection.cs" />
+    <Compile Include="MirDB\Attributes.cs" />
+    <Compile Include="MirDB\Crypto.cs" />
+    <Compile Include="MirDB\DBBindingList.cs" />
+    <Compile Include="MirDB\DBCollection.cs" />
+    <Compile Include="MirDB\DBMapping.cs" />
+    <Compile Include="MirDB\DBObject.cs" />
+    <Compile Include="MirDB\DBRelationship.cs" />
+    <Compile Include="MirDB\DBValue.cs" />
+    <Compile Include="MirDB\Session.cs" />
+    <Compile Include="Network\BaseConnection.cs" />
+    <Compile Include="Network\ClientPackets.cs" />
+    <Compile Include="Network\GeneralPackets.cs" />
+    <Compile Include="Network\MircoLibrary.cs" />
+    <Compile Include="Network\Packet.cs" />
+    <Compile Include="Network\ServerPackets.cs" />
+    <Compile Include="SystemModels\AccessoryExpInfo.cs" />
+    <Compile Include="SystemModels\AchievementInfo.cs" />
+    <Compile Include="SystemModels\BaseStat.cs" />
+    <Compile Include="SystemModels\CastleInfo.cs" />
+    <Compile Include="SystemModels\CompanionInfo.cs" />
+    <Compile Include="SystemModels\CompanionLevelInfo.cs" />
+    <Compile Include="SystemModels\CompanionSkillInfo.cs" />
+    <Compile Include="SystemModels\CraftExpInfo.cs" />
+    <Compile Include="SystemModels\CraftItemInfo.cs" />
+    <Compile Include="SystemModels\CustomBuffInfo.cs" />
+    <Compile Include="SystemModels\CustomBuffInfoStat.cs" />
+    <Compile Include="SystemModels\DiyMagicEffect.cs" />
+    <Compile Include="SystemModels\DropInfo.cs" />
+    <Compile Include="SystemModels\FishingAreaInfo.cs" />
+    <Compile Include="SystemModels\FullItemStat.cs" />
+    <Compile Include="SystemModels\GuardInfo.cs" />
+    <Compile Include="SystemModels\GuildLevelExp.cs" />
+    <Compile Include="SystemModels\ItemDisplayEffect.cs" />
+    <Compile Include="SystemModels\ItemInfo.cs" />
+    <Compile Include="SystemModels\ItemInfoStat.cs" />
+    <Compile Include="SystemModels\LangInfo.cs" />
+    <Compile Include="SystemModels\MagicInfo.cs" />
+    <Compile Include="SystemModels\MapInfo.cs" />
+    <Compile Include="SystemModels\MapRegion.cs" />
+    <Compile Include="SystemModels\MineInfo.cs" />
+    <Compile Include="SystemModels\MonActCheck.cs" />
+    <Compile Include="SystemModels\MonAnimationEffect.cs" />
+    <Compile Include="SystemModels\MonAnimationFrame.cs" />
+    <Compile Include="SystemModels\MonAttackEffect.cs" />
+    <Compile Include="SystemModels\MonDiyAiAction.cs" />
+    <Compile Include="SystemModels\MonsterEventInfo.cs" />
+    <Compile Include="SystemModels\MonsterInfo.cs" />
+    <Compile Include="SystemModels\MonsterInfoStat.cs" />
+    <Compile Include="SystemModels\MovementInfo.cs" />
+    <Compile Include="SystemModels\NPCInfo.cs" />
+    <Compile Include="SystemModels\PlayerExpInfo.cs" />
+    <Compile Include="SystemModels\QuestInfo.cs" />
+    <Compile Include="SystemModels\RespawnInfo.cs" />
+    <Compile Include="SystemModels\SafeZoneInfo.cs" />
+    <Compile Include="SystemModels\SetInfo.cs" />
+    <Compile Include="SystemModels\StoreInfo.cs" />
+    <Compile Include="SystemModels\TriggerInfo.cs" />
+    <Compile Include="SystemModels\WeaponCraftStatsInfo.cs" />
+    <Compile Include="SystemModels\WeaponExpInfo.cs" />
+    <Compile Include="SystemModels\WeaponUpgradeNew.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>
